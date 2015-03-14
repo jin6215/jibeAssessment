@@ -1,4 +1,4 @@
-package jibeAutomation;
+package jibeAssessment;
 
 import static org.junit.Assert.assertEquals;
 
@@ -17,9 +17,10 @@ import org.openqa.selenium.support.ui.ExpectedCondition;
 import org.openqa.selenium.support.ui.WebDriverWait;
 
 /**
- * This application use Selenium WebDriver API and JUnit to provide automated test to 
- * simulate 3 different scenarios in which a candidate signs up on https://demo.cc.jibe.com/. 
- * Different scenarios are created because of the different input of the candidate.
+ * This program uses Selenium WebDriver API and JUnit to provide automated test
+ * to simulate 3 different scenarios in which a candidate signs up on
+ * https://demo.cc.jibe.com/ with his/her email address. Different scenarios are
+ * created because of the different input of the candidate.
  * 
  * @author JinyiLi
  *
