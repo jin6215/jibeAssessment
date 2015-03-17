@@ -22,7 +22,7 @@ import org.openqa.selenium.support.ui.WebDriverWait;
  * to simulate 3 different scenarios in which a candidate signs up on
  * https://demo.cc.jibe.com/ with his/her email address. Different scenarios are
  * created because of the different input of the candidate. 
- * All three tests should pass.
+ * All three tests should pass whenever it is run.
  * 
  * @author JinyiLi
  *
