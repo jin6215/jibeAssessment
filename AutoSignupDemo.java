@@ -2,6 +2,7 @@ package jibeAssessment;
 
 import static org.junit.Assert.assertEquals;
 
+import java.util.Random;
 import java.util.concurrent.TimeUnit;
 
 import org.junit.After;
@@ -20,17 +21,23 @@ import org.openqa.selenium.support.ui.WebDriverWait;
  * This program uses Selenium WebDriver API and JUnit to provide automated test
  * to simulate 3 different scenarios in which a candidate signs up on
  * https://demo.cc.jibe.com/ with his/her email address. Different scenarios are
- * created because of the different input of the candidate.
+ * created because of the different input of the candidate. 
+ * All three tests should pass.
  * 
  * @author JinyiLi
  *
  */
-@FixMethodOrder(MethodSorters.NAME_ASCENDING)
+@FixMethodOrder(MethodSorters.NAME_ASCENDING) 
 public class AutoSignupDemo {
 	
+	private static final String URL = "https://demo.cc.jibe.com/";
+	
+	// This email address will be used for test1 and test2 with the same value,
+	// thus it is declared as static.
+	private static String email; 
+	
 	private WebDriver driver;
-	private String url;
-
+	
 	@Before
 	public void setUp() {
 		// Use Firefox browser for the test.
@@ -38,8 +45,7 @@ public class AutoSignupDemo {
 		// The maximum time the driver would wait while searching for an element is 10 seconds.
 		driver.manage().timeouts().implicitlyWait(10, TimeUnit.SECONDS);
 		// Load the web page.
-		url = "https://demo.cc.jibe.com/";
-		driver.get(url);// 
+		driver.get(URL); 
 		
 		/**
 		 * The FirefoxDriver object will throw a WebDriverException the first
@@ -57,38 +63,53 @@ public class AutoSignupDemo {
 		}
 		
 		// Verify the new page has been loaded before the test.
-		new WebDriverWait(driver, 10).until(new ExpectedCondition<Boolean>() {
-			public Boolean apply(WebDriver driver) {
-				return !driver.getCurrentUrl().equals(url);
-			}
-		});
+		verifyPageLoaded(driver, URL);
 	}
 	
 	@Test
 	/**
-	 * Test if the response is correct when submit the form with the appropriate input.
+	 * Test if the response is correct when the input should yield a successful registration.
 	 * @throws InterruptedException
 	 */
 	public void test1() throws InterruptedException {
-		driver.findElement(By.name("firstName")).sendKeys("Justin"); // Enter first name.
-		driver.findElement(By.name("lastName")).sendKeys("Timberlake"); // Enter last name.
-		driver.findElement(By.name("email")).sendKeys("jtimberlake@jibe.com"); // Enter the email address
+		// This loop make sure the email address entered hasn't been registered before.
+		while (true) {
+			String currURL = driver.getCurrentUrl();
+			driver.findElement(By.name("firstName")).sendKeys("Justin"); // Enter first name.
+			driver.findElement(By.name("lastName")).sendKeys("Timberlake"); // Enter last name.
+			
+			// Enter the email address, which was randomly generated.
+			email = createRandString();
+			driver.findElement(By.name("email")).sendKeys(email); 
+			
+			// Enter New York, NY as the Location, which will be chosen from the popped out item
+			driver.findElement(By.cssSelector("input[placeholder='Location']")).sendKeys("New York, NY");
+			// Put the thread into sleep for 0.2 second to let the invisible item show.
+			Thread.sleep(200); 
+			// Click to choose the popped out item.
+			driver.findElement(By.xpath("//tags-input[@placeholder='Location']/descendant::li")).click();
+			
+			// Enter skills, the comma let a small box come out to contain the item .
+			driver.findElement(By.cssSelector("input[placeholder='Search for skills']")).sendKeys("Falsetto Vocalism,");
+			driver.findElement(By.cssSelector("input[placeholder='Search for skills']")).sendKeys("Music Programming,");
+			
+			// Submit the form.
+			driver.findElement(By.cssSelector("input[placeholder='Search for skills']")).submit();
+			
+			// Verify a new page been loaded.
+			verifyPageLoaded(driver, currURL);
+			if (driver.getCurrentUrl().equals("https://demo.cc.jibe.com/login-email-sent")) {
+				// The URL inside the "if" statement indicate the email address was used before.
+				// Quit the browser an set up the test again.
+				driver.quit(); 
+				setUp(); 
+			} else {
+				break; // If the email hasn't been registered before, break the loop.
+			}
+		}
 		
-		// Enter New York, NY as the Location, which will be chosen from the popped out item
-		driver.findElement(By.cssSelector("input[placeholder='Location']")).sendKeys("New York, NY");
-		// Put the thread into sleep for 0.2 second to let the invisible item show.
-		Thread.sleep(200); 
-		// Click to choose the popped out item.
-		driver.findElement(By.xpath("//tags-input[@placeholder='Location']/descendant::li")).click();
-		
-		// Enter skills, the comma let a small box come out to contain the item .
-		driver.findElement(By.cssSelector("input[placeholder='Search for skills']")).sendKeys("Falsetto Vocalism,");
-		driver.findElement(By.cssSelector("input[placeholder='Search for skills']")).sendKeys("Music Programming,");
-		
-		// Submit the form.
-		driver.findElement(By.cssSelector("input[placeholder='Search for skills']")).submit();
-		
-		// The new page should have an element with text as "Congratulations".
+		// Since the email hasn't been used before,
+		// the new page should have an element with text as "Congratulations".
 		// The test is considered successful when it shows.
 		assertEquals(driver.findElement(By.xpath("//div[@class='success-container ng-scope']/h1")).getText(), "Congratulations");
 	}
@@ -103,11 +124,12 @@ public class AutoSignupDemo {
 		// Enter last name.
 		driver.findElement(By.name("lastName")).sendKeys("Timberlake"); 
 		// Enter the email address, which has been used during test1.
-		driver.findElement(By.name("email")).sendKeys("jtimberlake@jibe.com"); 
+		driver.findElement(By.name("email")).sendKeys(email); 
 		// Submit the form.
 		driver.findElement(By.name("email")).submit();
 		
-		// Since the email address has been used before, the page should indicate "Account Found" as an element.
+		// Since the email address has just been registered by test1, 
+		// the page should indicate "Account Found" as an element.
 		// The test is considered successful when it shows.
 		assertEquals(driver.findElement(By.xpath("//div[@class='login-email-sent ng-scope']/h1")).getText(), "Account Found");
 	}
@@ -129,8 +151,37 @@ public class AutoSignupDemo {
 	
 	@After
 	public void tearDown() throws Exception {
-		// Exit the browser when all the tests are finished.
+		// Exit the browser when the test is finished.
 		driver.quit();
 	}
 	
+	
+	/**
+	 * Create a random email address.
+	 * @return: randomly created email address.
+	 */
+	private static String createRandString() {
+		int length = 7;
+		StringBuilder sb = new StringBuilder(length);
+		for (int i = 0; i < length; i++) {
+			// The characters in this string are only small capital letter.
+			int randAlphInt = 97 + (int) (new Random().nextFloat() * (122 - 97));
+			sb.append((char) randAlphInt);
+		}
+		return sb.toString() + "@jibe.com";
+	}
+	
+	/**
+	 * Verify a new page has been loaded.
+	 * @param driver: Web Driver
+	 * @param url: The URL of the previous page
+	 */
+	private void verifyPageLoaded (WebDriver driver, final String url) {
+		new WebDriverWait(driver, 10).until(new ExpectedCondition<Boolean>() {
+			public Boolean apply(WebDriver driver) {
+				return !driver.getCurrentUrl().equals(url);
+			}
+		});
+	}
+
 }
